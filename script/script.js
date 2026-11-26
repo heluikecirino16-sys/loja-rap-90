@@ -26,17 +26,17 @@ const configuracoes = {
     }
 };
 
-const camposNumericos = [
+const camposNumericos = new Set([
     "preco", "estoque", "id_cliente", "id_funcionario", "total",
     "id_pedido", "id_produto", "quantidade", "preco_unitario"
-];
+]);
 
 function lerRegistros(config) {
     try {
         const dados = JSON.parse(localStorage.getItem(config.storage) || "[]");
         return Array.isArray(dados) ? dados : [];
     } catch (erro) {
-        console.error("Não foi possível ler os dados salvos:", erro);
+        console.error("Erro ao ler dados locais:", erro);
         return [];
     }
 }
@@ -55,23 +55,7 @@ function criarCelula(linha, valor) {
     linha.appendChild(celula);
 }
 
-function criarCelulaCabecalho(linha, titulo) {
-    const celula = document.createElement("th");
-    celula.textContent = titulo;
-    linha.appendChild(celula);
-}
-
-function mostrarMensagemTabela(tbody, mensagem, quantidadeColunas) {
-    tbody.innerHTML = "";
-    const linha = document.createElement("tr");
-    const celula = document.createElement("td");
-    celula.colSpan = quantidadeColunas;
-    celula.textContent = mensagem;
-    linha.appendChild(celula);
-    tbody.appendChild(linha);
-}
-
-function carregarPagina() {
+function renderizarTabela() {
     const pagina = document.body.dataset.page;
     const config = configuracoes[pagina];
     const tbody = document.querySelector("#tabela-dados");
@@ -84,19 +68,31 @@ function carregarPagina() {
         tabela.insertBefore(thead, tbody);
     }
 
-    thead.innerHTML = "";
+    thead.replaceChildren();
     const cabecalho = document.createElement("tr");
-    config.colunas.forEach(([, titulo]) => criarCelulaCabecalho(cabecalho, titulo));
-    criarCelulaCabecalho(cabecalho, "Ações");
+    config.colunas.forEach(([, titulo]) => {
+        const th = document.createElement("th");
+        th.textContent = titulo;
+        cabecalho.appendChild(th);
+    });
+    const thAcoes = document.createElement("th");
+    thAcoes.textContent = "Ações";
+    cabecalho.appendChild(thAcoes);
     thead.appendChild(cabecalho);
 
     const registros = lerRegistros(config);
-    if (registros.length === 0) {
-        mostrarMensagemTabela(tbody, "Nenhum registro cadastrado ainda.", config.colunas.length + 1);
+    tbody.replaceChildren();
+
+    if (!registros.length) {
+        const linha = document.createElement("tr");
+        const celula = document.createElement("td");
+        celula.colSpan = config.colunas.length + 1;
+        celula.textContent = "Nenhum registro cadastrado ainda.";
+        linha.appendChild(celula);
+        tbody.appendChild(linha);
         return;
     }
 
-    tbody.innerHTML = "";
     registros.forEach(registro => {
         const linha = document.createElement("tr");
         config.colunas.forEach(([campo]) => {
@@ -107,25 +103,21 @@ function carregarPagina() {
             criarCelula(linha, valor);
         });
 
-        const celulaAcoes = document.createElement("td");
-        const excluir = document.createElement("button");
-        excluir.type = "button";
-        excluir.className = "btn btn-excluir";
-        excluir.textContent = "Excluir";
-        excluir.addEventListener("click", () => excluirRegistro(config, registro, pagina));
-        celulaAcoes.appendChild(excluir);
-        linha.appendChild(celulaAcoes);
+        const acoes = document.createElement("td");
+        const botao = document.createElement("button");
+        botao.type = "button";
+        botao.className = "btn btn-excluir";
+        botao.textContent = "Excluir";
+        botao.addEventListener("click", () => {
+            if (!confirm("Tem certeza que deseja excluir este registro?")) return;
+            const idCampo = config.colunas[0][0];
+            salvarRegistros(config, lerRegistros(config).filter(item => item[idCampo] !== registro[idCampo]));
+            renderizarTabela();
+        });
+        acoes.appendChild(botao);
+        linha.appendChild(acoes);
         tbody.appendChild(linha);
     });
-}
-
-function excluirRegistro(config, registro, pagina) {
-    const idCampo = config.colunas[0][0];
-    if (!confirm("Tem certeza que deseja excluir este registro?")) return;
-
-    const atualizados = lerRegistros(config).filter(item => item[idCampo] !== registro[idCampo]);
-    salvarRegistros(config, atualizados);
-    carregarPagina();
 }
 
 function enviarFormulario(event) {
@@ -140,8 +132,8 @@ function enviarFormulario(event) {
     for (const campo of config.campos) {
         const input = formulario.elements.namedItem(campo);
         if (!input) continue;
+        const valor = String(input.value || "").trim();
 
-        const valor = input.value.trim();
         if (!valor) {
             if (input.required) {
                 input.focus();
@@ -152,7 +144,7 @@ function enviarFormulario(event) {
             continue;
         }
 
-        if (camposNumericos.includes(campo)) {
+        if (camposNumericos.has(campo)) {
             const numero = Number(valor);
             if (!Number.isFinite(numero) || numero < 0) {
                 input.focus();
@@ -165,9 +157,8 @@ function enviarFormulario(event) {
         }
     }
 
-    const registros = lerRegistros(config);
-
-    // A senha é solicitada para demonstrar o formulário, mas não é salva.
+    // Este projeto é uma demonstração no GitHub Pages: não envia cadastros para servidor.
+    // A senha é usada apenas para validar o formulário e nunca é armazenada.
     delete dados.senha;
 
     if (pagina === "pedidos") {
@@ -192,32 +183,35 @@ function enviarFormulario(event) {
         }
     }
 
-    const idCampo = config.colunas[0][0];
-    dados[idCampo] = proximoId(registros, idCampo);
-    registros.push(dados);
-
     try {
+        const registros = lerRegistros(config);
+        const idCampo = config.colunas[0][0];
+        dados[idCampo] = proximoId(registros, idCampo);
+        registros.push(dados);
         salvarRegistros(config, registros);
         formulario.reset();
-        carregarPagina();
+        renderizarTabela();
         alert("Cadastro realizado e salvo neste navegador!");
     } catch (erro) {
-        console.error(erro);
-        alert("Não foi possível salvar. O armazenamento do navegador pode estar cheio ou bloqueado.");
+        console.error("Erro ao salvar cadastro:", erro);
+        alert("O navegador bloqueou o armazenamento. Ative os dados do site e tente novamente.");
     }
 }
 
-async function verificarConexao() {
-    const status = document.querySelector("#api-status");
-    if (!status) return;
-
+async function requisitarCep(url) {
+    const controlador = new AbortController();
+    const temporizador = setTimeout(() => controlador.abort(), 10000);
     try {
-        const resposta = await fetch("/api/status");
-        if (!resposta.ok) throw new Error("Servidor indisponível");
-        const dados = await resposta.json();
-        status.textContent = dados.mensagem;
-    } catch {
-        status.textContent = "Modo demonstração ativo: os cadastros são salvos no LocalStorage. O servidor Python não está conectado.";
+        const resposta = await fetch(url, {
+            method: "GET",
+            headers: { "Accept": "application/json" },
+            cache: "no-store",
+            signal: controlador.signal
+        });
+        if (!resposta.ok) throw new Error("Serviço de CEP indisponível (HTTP " + resposta.status + ").");
+        return await resposta.json();
+    } finally {
+        clearTimeout(temporizador);
     }
 }
 
@@ -233,48 +227,62 @@ async function consultarCep() {
     }
 
     resultado.textContent = "Consultando CEP...";
-    try {
-        let resposta;
-        const servidorLocal = location.hostname === "127.0.0.1" || location.hostname === "localhost";
-
-        // Quando o site está rodando pelo Flask, usa a rota Python.
-        if (servidorLocal && location.port === "5000") {
-            resposta = await fetch("/api/cep/" + cep);
-        } else {
-            // No GitHub Pages, consulta o ViaCEP diretamente.
-            resposta = await fetch("https://viacep.com.br/ws/" + cep + "/json/");
+    const servicos = [
+        async () => {
+            const dados = await requisitarCep("https://viacep.com.br/ws/" + cep + "/json/");
+            if (dados.erro) throw new Error("CEP não encontrado.");
+            return {
+                logradouro: dados.logradouro,
+                bairro: dados.bairro,
+                cidade: dados.localidade,
+                uf: dados.uf
+            };
+        },
+        async () => {
+            const dados = await requisitarCep("https://brasilapi.com.br/api/cep/v1/" + cep);
+            return {
+                logradouro: dados.street,
+                bairro: dados.neighborhood,
+                cidade: dados.city,
+                uf: dados.state
+            };
         }
+    ];
 
-        if (!resposta.ok) {
-            const erro = await resposta.json().catch(() => ({}));
-            throw new Error(erro.erro || "Não foi possível consultar o CEP.");
+    let ultimoErro;
+    for (const consultar of servicos) {
+        try {
+            const endereco = await consultar();
+            resultado.textContent = [
+                endereco.logradouro,
+                endereco.bairro,
+                [endereco.cidade, endereco.uf].filter(Boolean).join(" - ")
+            ].filter(Boolean).join(", ") || "Endereço encontrado.";
+            return;
+        } catch (erro) {
+            ultimoErro = erro;
         }
-
-        const dados = await resposta.json();
-        if (dados.erro) throw new Error("CEP não encontrado.");
-
-        resultado.textContent = [
-            dados.logradouro, dados.bairro,
-            dados.localidade + " - " + dados.uf
-        ].filter(Boolean).join(", ") || "Endereço encontrado.";
-    } catch (erro) {
-        resultado.textContent = erro.message === "Failed to fetch"
-            ? "Falha de conexão. Confira sua internet e tente novamente."
-            : (erro.message || "Erro ao consultar o CEP.");
     }
+
+    resultado.textContent = ultimoErro?.name === "AbortError"
+        ? "A consulta demorou demais. Tente novamente."
+        : (ultimoErro?.message || "Não foi possível consultar o CEP. Confira sua conexão.");
 }
 
 document.addEventListener("DOMContentLoaded", () => {
     const pagina = document.body.dataset.page;
-
-    if (pagina === "inicio") verificarConexao();
+    const formulario = document.querySelector("#formulario");
 
     if (configuracoes[pagina]) {
-        const formulario = document.querySelector("#formulario");
         if (formulario) formulario.addEventListener("submit", enviarFormulario);
-        carregarPagina();
+        renderizarTabela();
     }
 
     const botaoCep = document.querySelector("#consultar-cep");
     if (botaoCep) botaoCep.addEventListener("click", consultarCep);
+
+    const status = document.querySelector("#api-status");
+    if (status) {
+        status.textContent = "Sistema ativo: cadastros salvos neste navegador (GitHub Pages).";
+    }
 });
