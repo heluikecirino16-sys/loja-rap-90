@@ -226,7 +226,7 @@ async function consultarCep() {
     const resultado = document.querySelector("#cep-resultado");
     if (!campo || !resultado) return;
 
-    const cep = campo.value.replace(/\\D/g, "");
+    const cep = campo.value.replace(/\D/g, "");
     if (cep.length !== 8) {
         resultado.textContent = "Digite um CEP com 8 números.";
         return;
