@@ -1,66 +1,32 @@
-# RAP 90s STORE — Back-end Python
+# RAP 90s STORE — Python + Flask (modo de simulação)
 
-Back-end de uma loja temática de rap dos anos 90, desenvolvido com Python, Programação Orientada a Objetos (POO), Flask e MySQL. A API permite cadastrar e consultar clientes, funcionários, produtos, pedidos e itens de pedido. Não depende de um front-end pronto.
+O Flask serve o site localmente e disponibiliza as rotas auxiliares de status e consulta de CEP. Os cadastros da loja são simulados no próprio navegador com JavaScript e LocalStorage, sem MySQL ou outro banco de dados.
 
-## Estrutura
+## Como executar no Windows
 
-- `app.py`: inicializa a API Flask e registra as rotas.
-- `models/`: classes de domínio (Cliente, Funcionario, Produto, Pedido e ItemPedido).
-- `dao/`: classes DAO que executam INSERT e SELECT no MySQL.
-- `routes/`: endpoints GET e POST da API.
-- `database.py`: conexão com o MySQL.
-- `serializacao.py`: conversão de datas e valores Decimal para JSON.
-- `rap90s_store.sql`: criação do banco e das tabelas.
-- `requirements.txt`: dependências.
+Abra o terminal na pasta principal do projeto e execute:
 
-## Como executar no XAMPP
-
-1. Inicie o MySQL pelo XAMPP.
-2. Abra `http://localhost/phpmyadmin`.
-3. Importe o arquivo `rap 90.SQL` que está na pasta `data base` do pacote (ou `rap90s_store.sql`, nesta pasta).
-4. Abra um terminal dentro da pasta `beckend`.
-5. (Recomendado) Crie e ative um ambiente virtual:
-   - Windows: `py -m venv .venv`
-   - PowerShell: `.venv\Scripts\Activate.ps1`
-6. Instale as bibliotecas: `pip install -r requirements.txt`.
-7. Execute: `python app.py`.
-8. A API ficará em `http://127.0.0.1:5000`.
-
-## Configuração do banco
-
-O padrão para XAMPP é host `localhost`, usuário `root`, senha vazia e banco `rap90s_store`. Se necessário, configure as variáveis de ambiente `DB_HOST`, `DB_USER`, `DB_PASSWORD` e `DB_NAME`.
-
-## Rotas disponíveis
-
-| Método | Rota | Ação |
-|---|---|---|
-| GET | `/` | Verifica se a API está ativa |
-| GET / POST | `/api/clientes` | Lista / cadastra clientes |
-| GET / POST | `/api/funcionarios` | Lista / cadastra funcionários |
-| GET / POST | `/api/produtos` | Lista / cadastra produtos |
-| GET / POST | `/api/pedidos` | Lista / cadastra pedidos |
-| GET / POST | `/api/itens-pedido` | Lista / cadastra itens de pedido |
-
-## Exemplo de cadastro (POST)
-
-Use um cliente HTTP, como Thunder Client ou Postman, com `Content-Type: application/json`.
-
-Cadastro de produto em `POST /api/produtos`:
-
-```json
-{
-  "nome": "Camiseta Rap 90s",
-  "descricao": "Camiseta temática",
-  "preco": 79.90,
-  "estoque": 15
-}
+```bash
+py -m pip install -r backend/requirements.txt
+py backend/app.py
 ```
 
-Consulta: abra `GET http://127.0.0.1:5000/api/produtos`.
+Depois, acesse http://127.0.0.1:5000.
 
-## Observações
+Para encerrar o servidor, volte ao terminal e pressione Ctrl + C.
 
-- Os pedidos precisam de IDs de cliente e funcionário já cadastrados.
-- Os itens de pedido precisam de IDs de pedido e produto existentes.
-- As senhas de funcionários são armazenadas com hash e não são retornadas na listagem.
-- O escopo atual contempla cadastro e consulta (POST e GET), conforme a etapa do projeto.
+## Como os dados são guardados
+
+Produtos, clientes, funcionários, pedidos e itens de pedido são salvos no LocalStorage do navegador. Os dados continuam disponíveis ao fechar e abrir o navegador, desde que você use o mesmo navegador e endereço do site.
+
+O modo publicado no GitHub Pages também permite cadastrar e consultar dados usando LocalStorage, mesmo sem o Flask. Os dados do endereço local e do GitHub Pages ficam separados.
+
+## Rotas Python
+
+- `GET /`: abre o site.
+- `GET /api/status`: informa que o Flask está funcionando.
+- `GET /api/cep/<cep>`: consulta o ViaCEP.
+
+## Limitações
+
+Este é um projeto de demonstração. O LocalStorage não é um banco de dados compartilhado, não sincroniza dados entre dispositivos ou navegadores e não deve guardar senhas ou informações confidenciais. Os dados podem ser apagados nas configurações do navegador.

@@ -237,3 +237,24 @@ footer {
     .panel { padding: 20px; overflow-x: auto; }
     table { min-width: 450px; }
 }
+
+
+.btn-excluir {
+    margin: 0;
+    padding: 8px 12px;
+    background: #8f2525;
+    color: #ffffff;
+    font-size: 12px;
+}
+
+.btn-excluir:hover {
+    background: #b83232;
+}
+
+table {
+    min-width: 520px;
+}
+
+.panel:has(table) {
+    overflow-x: auto;
+}
