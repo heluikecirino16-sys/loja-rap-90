@@ -1,21 +1,21 @@
 CREATE DATABASE IF NOT EXISTS rap90s_store;
 USE rap90s_store;
 
-CREATE TABLE clientes (
+CREATE TABLE IF NOT EXISTS clientes (
     id_cliente INT AUTO_INCREMENT PRIMARY KEY,
     nome VARCHAR(100) NOT NULL,
     telefone VARCHAR(20),
     email VARCHAR(100) NOT NULL UNIQUE
 );
 
-CREATE TABLE funcionarios (
+CREATE TABLE IF NOT EXISTS funcionarios (
     id_funcionario INT AUTO_INCREMENT PRIMARY KEY,
     nome VARCHAR(100) NOT NULL,
     cargo VARCHAR(50) NOT NULL,
     senha VARCHAR(255) NOT NULL
 );
 
-CREATE TABLE produtos (
+CREATE TABLE IF NOT EXISTS produtos (
     id_produto INT AUTO_INCREMENT PRIMARY KEY,
     nome VARCHAR(100) NOT NULL,
     descricao TEXT,
@@ -25,7 +25,7 @@ CREATE TABLE produtos (
     CHECK (estoque >= 0)
 );
 
-CREATE TABLE pedidos (
+CREATE TABLE IF NOT EXISTS pedidos (
     id_pedido INT AUTO_INCREMENT PRIMARY KEY,
     data DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     status VARCHAR(20) NOT NULL DEFAULT 'Pendente',
@@ -37,7 +37,7 @@ CREATE TABLE pedidos (
     CHECK (total >= 0)
 );
 
-CREATE TABLE itens_pedido (
+CREATE TABLE IF NOT EXISTS itens_pedido (
     id_item INT AUTO_INCREMENT PRIMARY KEY,
     quantidade INT NOT NULL,
     preco_unitario DECIMAL(10,2) NOT NULL,
