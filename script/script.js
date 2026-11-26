@@ -226,7 +226,7 @@ async function consultarCep() {
     const resultado = document.querySelector("#cep-resultado");
     if (!campo || !resultado) return;
 
-    const cep = campo.value.replace(/\D/g, "");
+    const cep = campo.value.replace(/\\D/g, "");
     if (cep.length !== 8) {
         resultado.textContent = "Digite um CEP com 8 números.";
         return;
@@ -234,17 +234,33 @@ async function consultarCep() {
 
     resultado.textContent = "Consultando CEP...";
     try {
-        const resposta = await fetch("https://viacep.com.br/ws/" + cep + "/json/");
-        if (!resposta.ok) throw new Error("Não foi possível consultar o CEP.");
+        let resposta;
+        const servidorLocal = location.hostname === "127.0.0.1" || location.hostname === "localhost";
+
+        // Quando o site está rodando pelo Flask, usa a rota Python.
+        if (servidorLocal && location.port === "5000") {
+            resposta = await fetch("/api/cep/" + cep);
+        } else {
+            // No GitHub Pages, consulta o ViaCEP diretamente.
+            resposta = await fetch("https://viacep.com.br/ws/" + cep + "/json/");
+        }
+
+        if (!resposta.ok) {
+            const erro = await resposta.json().catch(() => ({}));
+            throw new Error(erro.erro || "Não foi possível consultar o CEP.");
+        }
+
         const dados = await resposta.json();
         if (dados.erro) throw new Error("CEP não encontrado.");
 
         resultado.textContent = [
             dados.logradouro, dados.bairro,
             dados.localidade + " - " + dados.uf
-        ].filter(Boolean).join(", ");
+        ].filter(Boolean).join(", ") || "Endereço encontrado.";
     } catch (erro) {
-        resultado.textContent = erro.message || "Erro ao consultar o CEP.";
+        resultado.textContent = erro.message === "Failed to fetch"
+            ? "Falha de conexão. Confira sua internet e tente novamente."
+            : (erro.message || "Erro ao consultar o CEP.");
     }
 }
 
